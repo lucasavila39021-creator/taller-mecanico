@@ -6,6 +6,7 @@
 ## Contexto
 - Alumno: Lucas. Entrega: **sábado 31/10/2026 a la noche**.
 - Fuente de verdad ÚNICA: `docs/enunciado.pdf` (22 páginas). Se sigue al pie de la letra: no se omite nada de lo que pide y no se agrega nada que no pida.
+- Para leer el enunciado usá `docs/enunciado.txt` (versión texto del PDF, una página por salto de página). Si hay diferencias, manda el PDF.
 - Doble objetivo: aprobar **y** que Lucas entienda cada parte (puede tener que defenderlo).
 
 ## Forma de trabajo (obligatoria)
@@ -17,8 +18,8 @@
 6. Si el enunciado es ambiguo: preguntar. No inventar.
 
 ## Stack y entorno
-- Windows 10/11, **Python 3.14** (el mínimo es 3.12). PostgreSQL 16 **instalado nativo** en Windows (sin Docker).
-- FastAPI ≥0.111 · SQLModel ≥0.0.24 · SQLAlchemy 2 async · asyncpg ≥0.30 (plan B: psycopg 3 async) · Alembic ≥1.13 con plantilla async · pydantic-settings 2 · bcrypt ≥4 · PyJWT ≥2.8.
+- Windows 10/11, **Python 3.14** (el mínimo es 3.12). PostgreSQL 17.11 nativo en Windows (cumple el mínimo 16 del enunciado). Base de datos: taller. Sin Docker.
+- FastAPI ≥0.111 · SQLModel ≥0.0.24 · SQLAlchemy 2 async · asyncpg ≥0.30 · Alembic ≥1.13 con plantilla async · pydantic-settings 2 · bcrypt ≥4 · PyJWT ≥2.8.
 
 ## Reglas NO negociables (las mira la corrección)
 **Capas:** Router → Service → UoW → Repository → Model. El router construye el UoW con una dependencia y se lo pasa al servicio; el servicio lo abre con `async with` y nunca lo construye.
