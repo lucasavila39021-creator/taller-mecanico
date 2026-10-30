@@ -1,0 +1,15 @@
+# Secretos: NUNCA al repositorio (el TP no se corrige si aparecen)
+.env
+
+# Entorno virtual: cada uno lo crea en su PC
+.venv/
+venv/
+
+# Archivos que genera Python al ejecutar
+__pycache__/
+*.pyc
+
+# Configuración personal del editor y del sistema
+.vscode/
+.idea/
+Thumbs.db
