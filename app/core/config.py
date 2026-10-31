@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     # Secreto sin valor por defecto. El mínimo rechaza una clave vacía o un marcador sin completar.
     SECRET_KEY: SecretStr = Field(min_length=32)
     BCRYPT_COST: int = Field(default=12, ge=4, le=31)
+    BCRYPT_CONCURRENCIA: int = Field(default=4, ge=1)
     TOKEN_DURACION_SEGUNDOS: int = Field(default=1800, gt=0)
     COOKIE_SECURE: bool = True
 

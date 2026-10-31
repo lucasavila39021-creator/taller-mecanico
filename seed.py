@@ -22,6 +22,17 @@ PASSWORD = "Taller2026!"
 # Fecha fija para que dos corridas dejen exactamente el mismo resultado.
 FECHA_CARGA = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 
+# email, nombre, rol y si debe cambiar la contraseña. El orden fija los ids.
+PERSONAS = [
+    ("admin@example.com", "Ana Admin", Rol.ADMIN, False),
+    ("admin2@example.com", "Andrés Admin", Rol.ADMIN, False),
+    ("recepcion@example.com", "Rita Recepción", Rol.RECEPCION, False),
+    ("mecanico@example.com", "Mario Mecánico", Rol.MECANICO, False),
+    ("mecanico2@example.com", "Marta Mecánica", Rol.MECANICO, False),
+    ("cliente@example.com", "Laura Cliente", Rol.CLIENTE, False),
+    ("nuevo@example.com", "Nico Nuevo", Rol.MECANICO, True),
+]
+
 
 async def vaciar_tablas(session: AsyncSession) -> None:
     # TRUNCATE y no DELETE: el disparador de sólo agregado rechaza los DELETE.
@@ -43,22 +54,13 @@ async def cargar_estados(session: AsyncSession) -> None:
     await session.flush()
 
 
-async def cargar_usuarios(session: AsyncSession, costo: int) -> dict[str, Usuario]:
-    personas = [
-        ("admin@example.com", "Ana Admin", Rol.ADMIN, False),
-        ("admin2@example.com", "Andrés Admin", Rol.ADMIN, False),
-        ("recepcion@example.com", "Rita Recepción", Rol.RECEPCION, False),
-        ("mecanico@example.com", "Mario Mecánico", Rol.MECANICO, False),
-        ("mecanico2@example.com", "Marta Mecánica", Rol.MECANICO, False),
-        ("cliente@example.com", "Laura Cliente", Rol.CLIENTE, False),
-        ("nuevo@example.com", "Nico Nuevo", Rol.MECANICO, True),
-    ]
+async def cargar_usuarios(session: AsyncSession, hashes: list[str]) -> dict[str, Usuario]:
     usuarios = {}
-    for email, nombre, rol, debe_cambiar in personas:
+    for (email, nombre, rol, debe_cambiar), password_hash in zip(PERSONAS, hashes, strict=True):
         usuario = Usuario(
             email=email,
             nombre=nombre,
-            password_hash=hashear_password(PASSWORD, costo),
+            password_hash=password_hash,
             debe_cambiar_password=debe_cambiar,
         )
         session.add(usuario)
@@ -180,11 +182,11 @@ async def cargar_ordenes(
     await session.flush()
 
 
-async def cargar_datos(session: AsyncSession, costo: int) -> None:
+async def cargar_datos(session: AsyncSession, hashes: list[str]) -> None:
     await vaciar_tablas(session)
     # El catálogo primero: todo lo que tiene un estado apunta a él.
     await cargar_estados(session)
-    usuarios = await cargar_usuarios(session, costo)
+    usuarios = await cargar_usuarios(session, hashes)
     vehiculos = await cargar_clientes(session, usuarios)
     repuestos = await cargar_repuestos(session, usuarios["admin@example.com"])
     await cargar_ordenes(session, usuarios, vehiculos, repuestos)
@@ -193,11 +195,17 @@ async def cargar_datos(session: AsyncSession, costo: int) -> None:
 
 async def main() -> None:
     settings = get_settings()
+    # Este script no pasa por el lifespan, así que crea su propio semáforo.
+    semaforo = asyncio.Semaphore(settings.BCRYPT_CONCURRENCIA)
+    # Los hashes se calculan antes de abrir la transacción, para no tener la conexión tomada sin usarla.
+    hashes = await asyncio.gather(
+        *(hashear_password(PASSWORD, settings.BCRYPT_COST, semaforo) for _ in PERSONAS)
+    )
     motor = crear_motor(settings)
     try:
         # Una sola transacción: o queda todo cargado, o la base queda como estaba.
         async with crear_fabrica_sesiones(motor)() as session, session.begin():
-            await cargar_datos(session, settings.BCRYPT_COST)
+            await cargar_datos(session, hashes)
     finally:
         await motor.dispose()
     print("Datos iniciales cargados.")
