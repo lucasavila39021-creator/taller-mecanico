@@ -44,6 +44,10 @@
 - 31/10 · Contraseñas en los `.http`: cada archivo declara la de mentira de `seed.py` en `@password`, con un comentario que lo aclara. Los logins la necesitan.
 
 ## Registro
+### 31/10 · Entrega
+- Auditoría final del repo: sin secretos en los 35 commits anteriores a este registro. Se buscaron la contraseña de la base y la clave de firma en todos los objetos del historial, y `.env` nunca se versionó.
+- `LucasAvila.zip` armado desde un clon nuevo y verificado: sin `.env`, `.venv` ni `__pycache__`; con `.git` y `docs/evidencias/`.
+
 ### 31/10 · Fase 7
 - `test/*.http` con C-01 a C-13 y C-15 a C-19, y `test/solo_agregado.sql` con C-14. `README.md` con la puesta en marcha y la entrega.
 - Verificado con un ejecutor propio contra uvicorn, con `seed.py` antes de cada archivo: 81 pedidos, 0 fallas. No había Node para correr httpyac.
@@ -103,8 +107,5 @@
 - Repo Git creado (commit 40c6fdd). `.gitignore` con `.env` protegido.
 - venv con Python 3.14. `requirements.txt` instalado (SQLAlchemy 2.1.6, SQLModel 0.0.48).
 
-## Pendientes
-- Entrega: la auditoría final del repo, y después armar `LucasAvila.zip` con el comando del `README.md`.
-
 ## Próximo paso
-Auditoría final del repo, a cargo de Lucas. Después, armar el `.zip` y entregar.
+Entregar `LucasAvila.zip` en el campus y preparar la defensa.
