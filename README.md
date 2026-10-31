@@ -118,10 +118,14 @@ El detalle de una orden usa la misma cantidad de consultas con 2 y con 4 ítems.
 
 La entrega es un archivo `LucasAvila.zip`, que incluye la carpeta `.git` con el historial de commits.
 
-No incluye `.env`, que tiene las credenciales reales, ni `.venv`, que cada uno crea en su PC. Se arma con este comando, en la cmd de Windows y desde la carpeta del proyecto. Deja el archivo en la carpeta de arriba:
+Se arma desde un clon nuevo del repositorio. Así trae `.git` y sólo lo commiteado: no incluye `.env`, que tiene las credenciales reales, ni `.venv`, que cada uno crea en su PC. Los comandos van en la cmd de Windows:
 
 ```
-tar -a -c -f ..\LucasAvila.zip --exclude=.env --exclude=.venv --exclude=.vscode --exclude=__pycache__ .
+git clone https://github.com/lucasavila39021-creator/taller-mecanico.git "%TEMP%\LucasAvila"
+cd /d "%TEMP%\LucasAvila"
+tar -a -c -f "%USERPROFILE%\proyectos\LucasAvila.zip" .
+cd /d "%USERPROFILE%\proyectos"
+rmdir /s /q "%TEMP%\LucasAvila"
 ```
 
 ## Decisiones
