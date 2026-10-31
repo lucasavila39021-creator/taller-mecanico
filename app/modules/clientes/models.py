@@ -30,7 +30,7 @@ class Cliente(SQLModel, table=True):
     )
     vehiculos: list["Vehiculo"] = Relationship(
         back_populates="cliente",
-        sa_relationship_kwargs={"lazy": "raise"},
+        sa_relationship_kwargs={"lazy": "raise", "order_by": "Vehiculo.id"},
     )
 
 

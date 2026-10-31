@@ -17,7 +17,7 @@ from app.modules.usuarios.models import Rol
 MAXIMO_BYTES_PASSWORD = 72
 
 
-def _sin_caracter_nulo(valor: str) -> str:
+def sin_caracter_nulo(valor: str) -> str:
     # PostgreSQL no guarda el carácter nulo: sin este control, sería un 500 en lugar de un 422.
     if "\x00" in valor:
         raise ValueError("No puede contener el carácter nulo")
@@ -31,8 +31,8 @@ def _maximo_72_bytes(valor: str) -> str:
     return valor
 
 
-Texto = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1), AfterValidator(_sin_caracter_nulo)]
-Password = Annotated[str, Field(min_length=1), AfterValidator(_sin_caracter_nulo), AfterValidator(_maximo_72_bytes)]
+Texto = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1), AfterValidator(sin_caracter_nulo)]
+Password = Annotated[str, Field(min_length=1), AfterValidator(sin_caracter_nulo), AfterValidator(_maximo_72_bytes)]
 
 
 class RegistroEntrada(BaseModel):
