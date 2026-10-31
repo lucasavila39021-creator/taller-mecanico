@@ -22,6 +22,9 @@
 - 30/10 · Roles de cada IA: Claude Code (VS Code) escribe y prueba el código; el chat de claude.ai planifica, explica y revisa; Gemini extrae y resume el material y hace tareas sueltas que Claude revisa. **Una sola IA escribe código.**
 
 ## Registro
+### 30/10 · Fase 2 (en curso)
+- Pendiente del paso 2f: `seed.py` vacía con `TRUNCATE ... RESTART IDENTITY`. El ROLLBACK no devuelve los números de las secuencias, y los casos de prueba usan ids fijos (orden 2, repuesto 2...), así que tienen que arrancar en 1.
+
 ### 30/10 · Fase 1
 - `config.py`, `database.py`, lifespan en `main.py` y módulo `health`.
 - Pruebas contra la base real, hechas por Lucas:
