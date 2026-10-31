@@ -1,13 +1,22 @@
 import asyncio
+import math
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.config import Settings
 from app.core.database import nombre_restriccion
-from app.core.security import hashear_password
+from app.core.security import crear_token, hashear_password, verificar_password
 from app.modules.clientes.models import Cliente
-from app.modules.usuarios.models import AsignacionRol, EventoSeguridad, Rol, Usuario
-from app.modules.usuarios.schemas import RegistroEntrada
+from app.modules.usuarios.models import AsignacionRol, EventoSeguridad, IntentoAcceso, Rol, Usuario
+from app.modules.usuarios.repository import IntentoAccesoRepository
+from app.modules.usuarios.schemas import LoginEntrada, RegistroEntrada
 from app.modules.usuarios.unit_of_work import UsuariosUnitOfWork
+
+MAXIMO_FALLOS_LOGIN = 5
+VENTANA_FALLOS_SEGUNDOS = 60
 
 # Cada restricción de la base con su mensaje propio (RN-18: nunca el texto de la base).
 MENSAJES_CONFLICTO = {
@@ -19,6 +28,18 @@ MENSAJE_CONFLICTO_GENERICO = "Los datos enviados chocan con lo guardado"
 
 class Conflicto(Exception):
     """Los datos chocan con lo guardado. Sin HTTP: el router la traduce a un 409."""
+
+
+class CredencialesInvalidas(Exception):
+    """Mismo error exista o no el correo (RN-09). El router la traduce a un 401."""
+
+
+class DemasiadosIntentos(Exception):
+    """Se superó el límite de RN-08. El router la traduce a un 429."""
+
+    def __init__(self, reintentar_en: int) -> None:
+        super().__init__()
+        self.reintentar_en = reintentar_en
 
 
 def _traducir_conflicto(error: IntegrityError) -> Conflicto:
@@ -55,3 +76,47 @@ async def registrar(
     except IntegrityError as error:
         raise _traducir_conflicto(error) from None
     return usuario
+
+
+# Sesión y transacción propias: es la única escritura del sistema que no comparte la transacción
+# de su petición, porque el fallo que se quiere contar es el mismo que la revierte.
+# Costo: deja filas aunque la petición falle, y cada intento usa una conexión más.
+async def _anotar_intento(
+    fabrica: async_sessionmaker[AsyncSession], email: str, ip: str, exito: bool
+) -> None:
+    async with fabrica() as session, session.begin():
+        await IntentoAccesoRepository(session).add(IntentoAcceso(email=email, ip=ip, exito=exito))
+
+
+async def login(
+    uow: UsuariosUnitOfWork,
+    fabrica: async_sessionmaker[AsyncSession],
+    datos: LoginEntrada,
+    ip: str,
+    settings: Settings,
+    semaforo: asyncio.Semaphore,
+    hash_ficticio: str,
+) -> tuple[str, Usuario]:
+    ahora = datetime.now(UTC)
+    # Primero el límite (RN-08): cuesta una consulta y no calcula ningún hash.
+    # El bloque se cierra antes de verificar, para no tener la conexión tomada durante bcrypt.
+    async with uow:
+        desde = ahora - timedelta(seconds=VENTANA_FALLOS_SEGUNDOS)
+        fallos, primero = await uow.intentos.fallos_recientes(datos.email, ip, desde)
+        if fallos >= MAXIMO_FALLOS_LOGIN:
+            faltan = (primero + timedelta(seconds=VENTANA_FALLOS_SEGUNDOS) - ahora).total_seconds()
+            raise DemasiadosIntentos(max(1, math.ceil(faltan)))
+        usuario = await uow.usuarios.get_by_email(datos.email)
+
+    # RN-09: si el correo no existe se verifica igual, contra el hash ficticio, para tardar lo mismo.
+    password_hash = usuario.password_hash if usuario is not None else hash_ficticio
+    correcta = await verificar_password(datos.password, password_hash, semaforo)
+
+    if usuario is None or not correcta or not usuario.activo:
+        await _anotar_intento(fabrica, datos.email, ip, False)
+        raise CredencialesInvalidas
+
+    async with uow:
+        roles = await uow.roles.roles_vigentes(usuario.id, datetime.now(UTC))
+    await _anotar_intento(fabrica, datos.email, ip, True)
+    return crear_token(usuario.id, roles, settings), usuario

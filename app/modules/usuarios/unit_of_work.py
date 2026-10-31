@@ -5,6 +5,7 @@ from app.modules.clientes.repository import ClienteRepository
 from app.modules.usuarios.repository import (
     AsignacionRolRepository,
     EventoSeguridadRepository,
+    IntentoAccesoRepository,
     UsuarioRepository,
 )
 
@@ -17,3 +18,4 @@ class UsuariosUnitOfWork(UnitOfWork):
         self.roles = AsignacionRolRepository(session)
         self.clientes = ClienteRepository(session)
         self.eventos = EventoSeguridadRepository(session)
+        self.intentos = IntentoAccesoRepository(session)

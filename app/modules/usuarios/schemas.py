@@ -40,6 +40,29 @@ class RegistroEntrada(BaseModel):
         return valor.lower()
 
 
+class LoginEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    password: Password
+
+    @field_validator("email")
+    @classmethod
+    def _normalizar_email(cls, valor: str) -> str:
+        return valor.lower()
+
+
+# No trae el token: viaja sólo en la cookie.
+class LoginSalida(BaseModel):
+    mensaje: str
+    debe_cambiar_password: bool
+    expira_en_segundos: int
+
+
+class MensajeSalida(BaseModel):
+    mensaje: str
+
+
 # No incluye password_hash.
 class UsuarioSalida(BaseModel):
     model_config = ConfigDict(from_attributes=True)
