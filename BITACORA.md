@@ -11,7 +11,7 @@
 | 2 | Modelos, migraciones (auto + trigger a mano), seed.py | Ej 2, 7 | ✅ |
 | 3 | BaseRepository, SoftDelete, UoW, paginación | Ej 6 | ✅ |
 | 4 | Auth y autorización (bcrypt, login, cookie, roles, grupos de rutas) | Ej 4, 5 | ✅ |
-| 5 | Clientes, vehículos y repuestos (stock en un único punto, historial de precios) | Ej 3 | ⬜ |
+| 5 | Clientes, vehículos y repuestos (stock en un único punto, historial de precios) | Ej 3 | ✅ |
 | 6 | Órdenes: alta, transiciones, terminar, cancelar, sin N+1, aviso | Ej 6, 8 | ⬜ |
 | 7 | test/*.http (C-01 a C-19), solo_agregado.sql, evidencias, README | – | ⬜ |
 
@@ -26,8 +26,23 @@
 - 31/10 · `POST /usuarios` recibe `email`, `nombre` y `password`, sin rol: los roles se asignan con `POST /usuarios/{id}/roles`. El enunciado no fija el cuerpo.
 - 31/10 · El intento rechazado con 429 no se anota en `intento_acceso`: no se verificó ninguna contraseña, y el caso C-05 espera cinco fallos en la tabla.
 - 31/10 · `Retry-After`: los segundos que faltan para que venza el fallo más viejo de los que cuentan.
+- 31/10 · Sin `GET /clientes` (lista paginada): Lucas lo mencionó, pero no está en la tabla del enunciado, y pidió "endpoints exactos de la tabla". Sí están `POST /clientes` y `GET /clientes/{id}`.
+- 31/10 · `POST /clientes` no recibe `usuario_id`: la cuenta llega sólo por el auto-registro, y RN-02 no deja apropiarse de una ficha.
+- 31/10 · `/mis-vehiculos`, `/repuestos/{id}/movimientos` y `/repuestos/{id}/precios` devuelven una lista sin envoltorio: la tabla no les da `page` ni `size`.
+- 31/10 · Patente y código se guardan en mayúsculas, para que `ac456ef` choque con `AC456EF`.
+- 31/10 · `stock_inicial` admite 0: en ese caso no hay movimiento, porque el CHECK pide cantidad distinta de cero.
+- 31/10 · Cantidad de `stock_inicial` y de reposición: máximo 1.000.000. Pasar del máximo de la columna da 422. El enunciado no fija estos límites.
+- 31/10 · Un repuesto dado de baja da 404 en todas sus rutas, incluidas `/movimientos` y `/precios`: RN-16 dice que deja de aparecer.
+- 31/10 · Motivo de la reposición: "Reposición". El enunciado sólo fija "Stock inicial".
 
 ## Registro
+### 31/10 · Fase 5
+- Módulo clientes: `POST /clientes`, `GET /clientes/{id}` con vehículos vigentes, `POST /clientes/{id}/vehiculos`, `DELETE /vehiculos/{id}` (RN-16) y `GET /mis-vehiculos` (RN-17).
+- Módulo repuestos: listado con `q`, detalle, alta con `stock_inicial`, `PATCH` con su línea de precio en el mismo bloque (RN-20), baja lógica, reposición, movimientos y precios.
+- Stock: `RepuestoRepository.registrar_movimiento` es el único punto que lo escribe (RN-14). La terminación de órdenes de la Fase 6 tiene que usarlo.
+- Los 422 de validación salen en español, y `PaginaInexistente` se traduce en cada router.
+- Probados C-01, C-16, C-18 y C-19 contra la base real, y `GET /repuestos?size=2` idéntico al ejemplo de la pág. 18.
+
 ### 31/10 · Fase 4
 - 4c: `POST /auth/login` y `POST /auth/logout`. Primero el límite (RN-08), después la verificación contra el hash real o el ficticio (RN-09). `intento_acceso` en sesión y transacción propias.
 - 4d: `get_usuario_actual`, `requiere_rol`, `exigir_password_al_dia`, `GET /auth/yo`, `POST /auth/cambiar-password` (RN-07) y los dos grupos de rutas en `main.py`.
@@ -66,9 +81,8 @@
 - venv con Python 3.14. `requirements.txt` instalado (SQLAlchemy 2.1.6, SQLModel 0.0.48).
 
 ## Pendientes
-- Fase 5: traducir los 422 de validación de FastAPI a mensajes propios en español.
 - Fase 6: completar el caso C-06: el cliente ve su orden (200) y no la ajena (403).
 - Fase 7: las contraseñas de `seed.py` también van a aparecer en los `.http`, y el enunciado dice que viven sólo en ese archivo.
 
 ## Próximo paso
-Fase 5: clientes, vehículos y repuestos (stock en un único punto, historial de precios).
+Fase 6: órdenes (alta, transiciones, terminar, cancelar, sin N+1, aviso).
