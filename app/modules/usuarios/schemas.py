@@ -1,6 +1,18 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, StringConstraints, field_validator
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    StringConstraints,
+    field_validator,
+)
+
+from app.modules.usuarios.models import Rol
 
 MAXIMO_BYTES_PASSWORD = 72
 
@@ -57,6 +69,62 @@ class CambioPasswordEntrada(BaseModel):
 
     password_actual: Password
     password_nueva: Password
+
+
+class AltaPersonalEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    nombre: Texto
+    password: Password
+
+    @field_validator("email")
+    @classmethod
+    def _normalizar_email(cls, valor: str) -> str:
+        return valor.lower()
+
+
+class AsignarRolEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    rol: Rol
+    # AwareDatetime rechaza una fecha sin zona: es ambigua, ¿la hora de quién?
+    vence_en: AwareDatetime | None = None
+
+    @field_validator("vence_en")
+    @classmethod
+    def _vence_en_el_futuro(cls, valor: AwareDatetime | None) -> AwareDatetime | None:
+        if valor is None:
+            return None
+        try:
+            # Una fecha en el límite del calendario no entra al pasarla a UTC: sería un 500.
+            en_utc = valor.astimezone(UTC)
+        except OverflowError:
+            raise ValueError("El vencimiento no es una fecha válida") from None
+        if en_utc <= datetime.now(UTC):
+            raise ValueError("El vencimiento tiene que estar en el futuro")
+        return valor
+
+
+class AsignacionSalida(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    usuario_id: int
+    rol: str
+    desde: datetime
+    vence_en: datetime | None
+    revocada_en: datetime | None
+    otorgada_por: int | None
+
+
+class EventoSalida(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    cuando: datetime
+    actor: str
+    accion: str
 
 
 class YoSalida(BaseModel):

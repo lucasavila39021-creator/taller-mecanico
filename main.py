@@ -18,6 +18,7 @@ from app.core.dependencies import exigir_password_al_dia
 from app.core.security import hashear_password
 from app.modules.health.router import router as health_router
 from app.modules.usuarios.router import router as usuarios_router
+from app.modules.usuarios.router import router_admin as administracion_router
 
 
 @asynccontextmanager
@@ -64,6 +65,7 @@ grupo_abierto.include_router(health_router)
 grupo_abierto.include_router(usuarios_router)
 
 grupo_protegido = APIRouter(dependencies=[Depends(exigir_password_al_dia)])
+grupo_protegido.include_router(administracion_router)
 
 app.include_router(grupo_abierto)
 app.include_router(grupo_protegido)
