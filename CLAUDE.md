@@ -12,7 +12,7 @@
 ## Forma de trabajo (obligatoria)
 1. Pasos chicos. Antes del código: explicar la idea con un **ejemplo cotidiano**, después el código, después probarlo.
 2. Preguntar si se entendió antes de pasar al siguiente paso.
-3. Todo comando indica en qué terminal va: **cmd de Windows** o **terminal de VS Code**.
+3. Todo comando indica en qué terminal va. El venv se usa en la **cmd de Windows** (la terminal de VS Code es PowerShell y da problemas al activar), así que los comandos se dan para cmd.
 4. No tocar archivos de fases cerradas sin avisar y explicar por qué.
 5. Al cerrar cada fase: actualizar `BITACORA.md` y hacer `git commit`.
 6. Si el enunciado es ambiguo: preguntar. No inventar.

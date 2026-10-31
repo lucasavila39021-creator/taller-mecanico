@@ -7,7 +7,7 @@
 | # | Fase | Ejercicios | Estado |
 |---|------|-----------|--------|
 | 0 | Entorno: PostgreSQL, repo, venv, docs | – | ✅ |
-| 1 | Config, database, lifespan, health | Ej 1 | ⬜ |
+| 1 | Config, database, lifespan, health | Ej 1 | ⏳ en curso |
 | 2 | Modelos, migraciones (auto + trigger a mano), seed.py | Ej 2, 7 | ⬜ |
 | 3 | BaseRepository, SoftDelete, UoW, paginación | Ej 6 | ⬜ |
 | 4 | Auth y autorización (bcrypt, login, cookie, roles, grupos de rutas) | Ej 4, 5 | ⬜ |
@@ -22,6 +22,9 @@
 - 30/10 · Roles de cada IA: Claude Code (VS Code) escribe y prueba el código; el chat de claude.ai planifica, explica y revisa; Gemini extrae y resume el material y hace tareas sueltas que Claude revisa. **Una sola IA escribe código.**
 
 ## Registro
+### 30/10 · Fase 1 (en curso)
+- Pendiente para la Fase 4: calcular el hash ficticio del login en el lifespan de `main.py`. Depende de `app/core/security.py`.
+
 ### 30/10 · Fase 0
 - Plan maestro definido. Se crearon CLAUDE.md y esta bitácora.
 - Repo Git creado (commit 40c6fdd). `.gitignore` con `.env` protegido.
