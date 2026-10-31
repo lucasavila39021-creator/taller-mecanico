@@ -13,7 +13,7 @@
 | 4 | Auth y autorización (bcrypt, login, cookie, roles, grupos de rutas) | Ej 4, 5 | ✅ |
 | 5 | Clientes, vehículos y repuestos (stock en un único punto, historial de precios) | Ej 3 | ✅ |
 | 6 | Órdenes: alta, transiciones, terminar, cancelar, sin N+1, aviso | Ej 6, 8 | ✅ |
-| 7 | test/*.http (C-01 a C-19), solo_agregado.sql, evidencias, README | – | ⬜ |
+| 7 | test/*.http (C-01 a C-19), solo_agregado.sql, evidencias, README | – | ⏳ en curso |
 
 ## Decisiones tomadas
 - 30/10 · Guía única: el enunciado de 22 páginas. El material de la cátedra no tiene las secciones que cita el TP.
@@ -41,8 +41,16 @@
 - 31/10 · Un total que no entra en `NUMERIC(12,2)` da 422. Sin este control sería un 500.
 - 31/10 · Motivo de la salida de stock: "Salida por la orden N". El aviso va al logger `uvicorn.error`, el que ya sale en la consola del servidor.
 - 31/10 · Se mantiene afuera `GET /clientes`: agregar lo que el enunciado no pide no suma nota.
+- 31/10 · Contraseñas en los `.http`: cada archivo declara la de mentira de `seed.py` en `@password`, con un comentario que lo aclara. Los logins la necesitan.
 
 ## Registro
+### 31/10 · Fase 7 (en curso)
+- `test/*.http` con C-01 a C-13 y C-15 a C-19, y `test/solo_agregado.sql` con C-14. `README.md` con la puesta en marcha.
+- Verificado con un ejecutor propio contra uvicorn: 81 pedidos, 0 fallas. No había Node para correr httpyac, y falta pasarlos una vez por REST Client.
+- `test/solo_agregado.sql` con psql: 7 rechazos, sin cambios en las filas.
+- Desde un clon limpio de GitHub, con venv nuevo y base vacía: sin `.env` no arranca; `upgrade head`, `downgrade base`, `upgrade head`, `seed.py` y el servidor andan, y los 81 pedidos también.
+- Ninguna credencial real en los archivos ni en el historial de Git.
+
 ### 31/10 · Fase 6
 - Módulo ordenes: catálogo de sólo lectura, alta (RN-10), listados, detalle, iniciar, terminar (RN-13) y cancelar (RN-12).
 - Probados C-06, C-10, C-11, C-12 (con el servidor real: el aviso sale después de la respuesta), C-13, C-15 y C-17 contra la base real.
@@ -93,7 +101,8 @@
 - venv con Python 3.14. `requirements.txt` instalado (SQLAlchemy 2.1.6, SQLModel 0.0.48).
 
 ## Pendientes
-- Fase 7: las contraseñas de `seed.py` también van a aparecer en los `.http`, y el enunciado dice que viven sólo en ese archivo.
+- Fase 7: sacar las evidencias C-14 y C-15 y guardarlas en `docs/evidencias/`. Las saca Lucas.
+- Fase 7: pasar los `.http` una vez por REST Client.
 
 ## Próximo paso
-Fase 7: `test/*.http` (C-01 a C-19), `test/solo_agregado.sql`, evidencias y `README.md`.
+Sacar las dos evidencias, commitearlas y cerrar la Fase 7.
