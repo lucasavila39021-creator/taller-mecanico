@@ -17,6 +17,7 @@
 5. Al cerrar cada fase: actualizar `BITACORA.md` y hacer `git commit`.
 6. Si el enunciado es ambiguo: preguntar. No inventar.
 7. Los commits NO llevan la línea Co-Authored-By ni ninguna otra firma de IA.
+8. Después de cada commit, hacer `git push`.
 
 ## Stack y entorno
 - Windows 10/11, **Python 3.14** (el mínimo es 3.12). PostgreSQL 17.11 nativo en Windows (cumple el mínimo 16 del enunciado). Base de datos: taller. Sin Docker.
