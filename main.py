@@ -18,6 +18,7 @@ from app.core.dependencies import exigir_password_al_dia
 from app.core.security import hashear_password
 from app.modules.clientes.router import router as clientes_router
 from app.modules.health.router import router as health_router
+from app.modules.ordenes.router import router as ordenes_router
 from app.modules.repuestos.router import router as repuestos_router
 from app.modules.usuarios.router import router as usuarios_router
 from app.modules.usuarios.router import router_admin as administracion_router
@@ -73,6 +74,8 @@ MENSAJES_VALIDACION = {
     "datetime_from_date_parsing": "No es una fecha válida",
     "json_invalid": "El cuerpo no es un JSON válido",
     "model_attributes_type": "El cuerpo tiene que ser un objeto",
+    "list_type": "Tiene que ser una lista",
+    "too_short": "Tiene que tener al menos {min_length} elemento",
 }
 
 
@@ -111,6 +114,7 @@ grupo_protegido = APIRouter(dependencies=[Depends(exigir_password_al_dia)])
 grupo_protegido.include_router(administracion_router)
 grupo_protegido.include_router(clientes_router)
 grupo_protegido.include_router(repuestos_router)
+grupo_protegido.include_router(ordenes_router)
 
 app.include_router(grupo_abierto)
 app.include_router(grupo_protegido)

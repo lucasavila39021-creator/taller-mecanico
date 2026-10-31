@@ -31,6 +31,15 @@ class RepuestoRepository(SoftDeleteRepository[Repuesto]):
         )
         return (await self.session.exec(consulta)).first()
 
+    async def get_bloqueado_incluyendo_bajas(self, id: int) -> Repuesto | None:
+        consulta = (
+            select(Repuesto)
+            .where(Repuesto.id == id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return (await self.session.exec(consulta)).first()
+
     # RN-14: el ÚNICO punto del sistema que escribe el stock. Crea el movimiento y ajusta el número.
     # La cantidad es positiva si entra y negativa si sale. Recibe el repuesto ya bloqueado.
     async def registrar_movimiento(
