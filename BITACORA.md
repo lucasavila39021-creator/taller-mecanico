@@ -10,7 +10,7 @@
 | 1 | Config, database, lifespan, health | Ej 1 | ✅ |
 | 2 | Modelos, migraciones (auto + trigger a mano), seed.py | Ej 2, 7 | ✅ |
 | 3 | BaseRepository, SoftDelete, UoW, paginación | Ej 6 | ✅ |
-| 4 | Auth y autorización (bcrypt, login, cookie, roles, grupos de rutas) | Ej 4, 5 | ⬜ |
+| 4 | Auth y autorización (bcrypt, login, cookie, roles, grupos de rutas) | Ej 4, 5 | ⏳ en curso |
 | 5 | Clientes, vehículos y repuestos (stock en un único punto, historial de precios) | Ej 3 | ⬜ |
 | 6 | Órdenes: alta, transiciones, terminar, cancelar, sin N+1, aviso | Ej 6, 8 | ⬜ |
 | 7 | test/*.http (C-01 a C-19), solo_agregado.sql, evidencias, README | – | ⬜ |
@@ -22,6 +22,11 @@
 - 30/10 · Roles de cada IA: Claude Code (VS Code) escribe y prueba el código; el chat de claude.ai planifica, explica y revisa; Gemini extrae y resume el material y hace tareas sueltas que Claude revisa. **Una sola IA escribe código.**
 
 ## Registro
+### 30/10 · Fase 4 (en curso)
+- 4a: `app/core/security.py` con bcrypt en `to_thread` y bajo semáforo, y JWT con `iat` con decimales. El semáforo y el hash ficticio se crean en el lifespan y van a `app.state`.
+- 4b: `POST /auth/registro` (RN-02) con el circuito completo de capas. Probado el caso C-02 contra la base real.
+- Corrección del 4b: un manejador en `main.py` hace que el 422 no repita la entrada. Antes devolvía la contraseña, y un carácter inválido terminaba en un 500.
+
 ### 30/10 · Fase 3
 - `BaseRepository[T]` y `SoftDeleteRepository[T]` en `app/core/repository.py`: `add`, `update` y `delete` hacen `flush()`, nunca `commit()`; `get_all` y `count` reciben los mismos filtros.
 - `UnitOfWork` base en `app/core/unit_of_work.py`: confirma al salir, revierte si hay excepción y no cierra la sesión.
@@ -50,11 +55,10 @@
 - venv con Python 3.14. `requirements.txt` instalado (SQLAlchemy 2.1.6, SQLModel 0.0.48).
 
 ## Pendientes
-- Fase 4: calcular el hash ficticio del login en el lifespan de `main.py`.
-- Fase 4: agregar `to_thread` y el semáforo a `hashear_password`.
+- Fase 4: el login tiene que normalizar el email a minúsculas, como el registro.
 - Fase 5: traducir `PaginaInexistente` a un 422, con el primer router.
 - Fase 5: traducir los 422 de validación de FastAPI a mensajes propios en español.
 - Fase 7: las contraseñas de `seed.py` también van a aparecer en los `.http`, y el enunciado dice que viven sólo en ese archivo.
 
 ## Próximo paso
-Fase 4: auth y autorización (bcrypt, login, cookie, roles, grupos de rutas).
+Paso 4c: el login (límite de intentos RN-08, `intento_acceso` en sesión propia, hash ficticio RN-09, cookie HttpOnly) y el logout.
