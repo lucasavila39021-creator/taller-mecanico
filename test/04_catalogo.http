@@ -1,0 +1,170 @@
+# Casos C-16, C-18 y C-19: búsqueda, paginación, PATCH, historial de precios y baja lógica.
+# Antes de correr este archivo: python seed.py
+# Los pedidos se corren en orden, de arriba hacia abajo: los que siguen usan las sesiones de los anteriores.
+
+@base = http://127.0.0.1:8000
+# Contraseña de mentira de seed.py: no es una credencial real.
+@password = Taller2026!
+
+###
+# Sesión de la administradora.
+# Esperado: 200
+# @name loginAdmin
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "{{password}}" }
+
+###
+# Sesión de la recepción.
+# Esperado: 200
+# @name loginRecepcion
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "recepcion@example.com", "password": "{{password}}" }
+
+###
+# Ejemplo de la página 18: el listado con size=2.
+# Esperado: 200 «"codigo":"FIL-001"» «"precio":"32000.00"» «"total":4,"page":1,"size":2,"pages":2»
+# @no-cookie-jar
+GET {{base}}/repuestos?size=2
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# Ejemplo de la página 18: una página más allá de la última.
+# Esperado: 422 «La página 3 no existe: hay 2»
+# @no-cookie-jar
+GET {{base}}/repuestos?page=3&size=2
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-16: búsqueda con ' OR '1'='1 (va codificada en la URL). Los parámetros ligados la tratan como texto.
+# Esperado: 200 «"items":[],"total":0»
+# @no-cookie-jar
+GET {{base}}/repuestos?q=%27%20OR%20%271%27%3D%271
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-16: paginación con filtro: el total cuenta con los mismos filtros que la página.
+# Esperado: 200 «"total":1,"page":1,"size":1,"pages":1»
+# @no-cookie-jar
+GET {{base}}/repuestos?q=freno&size=1
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-16: la página 2 de ese mismo filtro no existe.
+# Esperado: 422 «La página 2 no existe: hay 1»
+# @no-cookie-jar
+GET {{base}}/repuestos?q=freno&size=1&page=2
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-16: size fuera del contrato.
+# Esperado: 422 «Tiene que ser menor o igual que 100»
+# @no-cookie-jar
+GET {{base}}/repuestos?size=500
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-16: PATCH parcial: sólo cambia lo enviado. El precio y el stock siguen igual.
+# Esperado: 200 «Filtro de aceite premium» «"precio":"8500.00","stock":10»
+# @no-cookie-jar
+PATCH {{base}}/repuestos/1
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "descripcion": "Filtro de aceite premium" }
+
+###
+# C-16: PATCH del stock: no se edita por esta vía (RN-14).
+# Esperado: 422 «Este campo no está permitido»
+# @no-cookie-jar
+PATCH {{base}}/repuestos/1
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "stock": 99 }
+
+###
+# C-18: cambiar el precio de un repuesto.
+# Esperado: 200 «"precio":"33000.00"»
+# @no-cookie-jar
+PATCH {{base}}/repuestos/2
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "precio": "33000.00" }
+
+###
+# C-18: una línea nueva, con el precio anterior y el nuevo.
+# Esperado: 200 «"precio_anterior":"32000.00","precio_nuevo":"33000.00"»
+# @no-cookie-jar
+GET {{base}}/repuestos/2/precios
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-18: cambiar sólo la descripción.
+# Esperado: 200 «Pastillas de freno»
+# @no-cookie-jar
+PATCH {{base}}/repuestos/2
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "descripcion": "Pastillas de freno" }
+
+###
+# C-18: un PATCH con el mismo precio tampoco agrega línea (y no da 500 por el CHECK).
+# Esperado: 200 «"precio":"33000.00"»
+# @no-cookie-jar
+PATCH {{base}}/repuestos/2
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "precio": "33000.00" }
+
+###
+# C-18: sigue habiendo una sola línea: mirar que la lista tenga un elemento.
+# Esperado: 200 «"precio_nuevo":"33000.00"»
+# @no-cookie-jar
+GET {{base}}/repuestos/2/precios
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-18: la recepción no puede cambiar precios.
+# Esperado: 403 «No tenés permiso»
+# @no-cookie-jar
+PATCH {{base}}/repuestos/2
+Cookie: {{loginRecepcion.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "precio": "1.00" }
+
+###
+# C-19: dar de baja un vehículo sin órdenes (el segundo de Laura).
+# Esperado: 204
+# @no-cookie-jar
+DELETE {{base}}/vehiculos/2
+Cookie: {{loginRecepcion.response.headers.Set-Cookie}}
+
+###
+# C-19: registrarlo con la misma patente para otro cliente: el índice único parcial sólo cuenta los vigentes.
+# Esperado: 201 «AC456EF»
+# @no-cookie-jar
+POST {{base}}/clientes/2/vehiculos
+Cookie: {{loginRecepcion.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "patente": "AC456EF", "marca": "Ford", "modelo": "Focus", "anio": 2019 }
+
+###
+# C-19: una segunda patente vigente igual.
+# Esperado: 409 «Ya existe un vehículo vigente con esa patente»
+# @no-cookie-jar
+POST {{base}}/clientes/1/vehiculos
+Cookie: {{loginRecepcion.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "patente": "AC456EF", "marca": "Otra", "modelo": "Otro", "anio": 2020 }

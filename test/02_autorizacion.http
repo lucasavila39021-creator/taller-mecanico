@@ -1,0 +1,187 @@
+# Casos C-06 a C-09: 401 contra 403, lo propio, revocar un rol, autoprotección y cambio obligatorio.
+# Antes de correr este archivo: python seed.py
+# Los pedidos se corren en orden, de arriba hacia abajo: los que siguen usan las sesiones de los anteriores.
+
+@base = http://127.0.0.1:8000
+# Contraseña de mentira de seed.py: no es una credencial real.
+@password = Taller2026!
+# Contraseña nueva del caso C-09: también es de mentira.
+@passwordNueva = Nueva-De-Mentira-1
+
+###
+# Sesión de la administradora.
+# Esperado: 200
+# @name loginAdmin
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "{{password}}" }
+
+###
+# Sesión de Laura, la clienta dueña de la orden 1.
+# Esperado: 200
+# @name loginCliente
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "cliente@example.com", "password": "{{password}}" }
+
+###
+# C-06: sin sesión.
+# Esperado: 401 «No autenticado»
+# @no-cookie-jar
+GET {{base}}/ordenes
+
+###
+# C-06: con sesión y sin rol de personal.
+# Esperado: 403 «No tenés permiso»
+# @no-cookie-jar
+GET {{base}}/ordenes
+Cookie: {{loginCliente.response.headers.Set-Cookie}}
+
+###
+# C-06: el cliente ve su orden.
+# Esperado: 200 «Laura Cliente»
+# @no-cookie-jar
+GET {{base}}/ordenes/1
+Cookie: {{loginCliente.response.headers.Set-Cookie}}
+
+###
+# C-06: el cliente no ve la orden ajena, que es del vehículo de Jorge.
+# Esperado: 403 «No podés ver esta orden»
+# @no-cookie-jar
+GET {{base}}/ordenes/2
+Cookie: {{loginCliente.response.headers.Set-Cookie}}
+
+###
+# C-07, preparación: la administradora le da ADMIN a mecanico2.
+# Esperado: 201 «ADMIN»
+# @no-cookie-jar
+POST {{base}}/usuarios/5/roles
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "rol": "ADMIN" }
+
+###
+# C-07, preparación: mecanico2 inicia sesión con el rol ADMIN en su token.
+# Esperado: 200
+# @name loginRevocado
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "mecanico2@example.com", "password": "{{password}}" }
+
+###
+# C-07: con el rol vigente puede entrar a una ruta de administración.
+# Esperado: 200
+# @no-cookie-jar
+GET {{base}}/usuarios/1/roles
+Cookie: {{loginRevocado.response.headers.Set-Cookie}}
+
+###
+# C-07: se le revoca el rol con la sesión abierta.
+# Esperado: 200 «revocada_en»
+# @no-cookie-jar
+DELETE {{base}}/usuarios/5/roles/ADMIN
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-07: la misma cookie, en la petición siguiente, ya no alcanza.
+# Esperado: 403 «No tenés permiso»
+# @no-cookie-jar
+GET {{base}}/usuarios/1/roles
+Cookie: {{loginRevocado.response.headers.Set-Cookie}}
+
+###
+# C-07: /auth/yo muestra la diferencia: roles_vigentes sin ADMIN y roles_token con ADMIN.
+# Esperado: 200 «"roles_vigentes":["MECANICO"]» «"roles_token":["ADMIN","MECANICO"]»
+# @no-cookie-jar
+GET {{base}}/auth/yo
+Cookie: {{loginRevocado.response.headers.Set-Cookie}}
+
+###
+# C-07: la fila revocada sigue: aparece el rol ADMIN con su revocada_en.
+# Esperado: 200 «"rol":"ADMIN"»
+# @no-cookie-jar
+GET {{base}}/usuarios/5/roles
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-07: un vencimiento en el pasado.
+# Esperado: 422 «El vencimiento tiene que estar en el futuro»
+# @no-cookie-jar
+POST {{base}}/usuarios/5/roles
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "rol": "RECEPCION", "vence_en": "2020-01-01T00:00:00Z" }
+
+###
+# C-07: un vencimiento sin zona horaria.
+# Esperado: 422 «La fecha tiene que indicar la zona horaria»
+# @no-cookie-jar
+POST {{base}}/usuarios/5/roles
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "rol": "RECEPCION", "vence_en": "2030-01-01T00:00:00" }
+
+###
+# C-08: la administradora no se revoca su propio rol ADMIN.
+# Esperado: 409 «No podés revocarte tu propio rol ADMIN»
+# @no-cookie-jar
+DELETE {{base}}/usuarios/1/roles/ADMIN
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-09: entra el usuario con el cambio de contraseña obligatorio.
+# Esperado: 200 «"debe_cambiar_password":true»
+# @name loginNuevo
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "nuevo@example.com", "password": "{{password}}" }
+
+###
+# C-09: bloqueado en el grupo protegido.
+# Esperado: 403 «Tenés que cambiar la contraseña»
+# @no-cookie-jar
+GET {{base}}/repuestos
+Cookie: {{loginNuevo.response.headers.Set-Cookie}}
+
+###
+# C-09: las rutas de /auth siguen abiertas.
+# Esperado: 200 «nuevo@example.com»
+# @no-cookie-jar
+GET {{base}}/auth/yo
+Cookie: {{loginNuevo.response.headers.Set-Cookie}}
+
+###
+# C-09: cambia la contraseña sin esperar después del login. Entrega una cookie nueva.
+# Esperado: 200 «Contraseña cambiada»
+# @name cambio
+# @no-cookie-jar
+POST {{base}}/auth/cambiar-password
+Cookie: {{loginNuevo.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "password_actual": "{{password}}", "password_nueva": "{{passwordNueva}}" }
+
+###
+# C-09: la cookie anterior da 401 (RN-07), aunque sea del mismo segundo que el cambio.
+# Esperado: 401 «No autenticado»
+# @no-cookie-jar
+GET {{base}}/auth/yo
+Cookie: {{loginNuevo.response.headers.Set-Cookie}}
+
+###
+# C-09: la cookie nueva vale, y ya puede usar el grupo protegido.
+# Esperado: 200 «FIL-001»
+# @no-cookie-jar
+GET {{base}}/repuestos
+Cookie: {{cambio.response.headers.Set-Cookie}}

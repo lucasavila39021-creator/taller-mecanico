@@ -1,0 +1,217 @@
+# Casos C-10 a C-13, C-15 y C-17: órdenes, stock, cancelación, consultas fijas y catálogo.
+# Antes de correr este archivo: python seed.py
+# Los pedidos se corren en orden, de arriba hacia abajo: los que siguen usan las sesiones y las órdenes de los anteriores.
+
+@base = http://127.0.0.1:8000
+# Contraseña de mentira de seed.py: no es una credencial real.
+@password = Taller2026!
+
+###
+# Sesión de la administradora.
+# Esperado: 200
+# @name loginAdmin
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "{{password}}" }
+
+###
+# Sesión de la recepción.
+# Esperado: 200
+# @name loginRecepcion
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "recepcion@example.com", "password": "{{password}}" }
+
+###
+# Sesión del mecánico asignado a la orden 2.
+# Esperado: 200
+# @name loginMecanico
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "mecanico@example.com", "password": "{{password}}" }
+
+###
+# Sesión de Laura, la clienta dueña de la orden 1.
+# Esperado: 200
+# @name loginCliente
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "cliente@example.com", "password": "{{password}}" }
+
+###
+# C-10: alta de una orden con dos ítems. Precios copiados, total calculado y primera línea del historial.
+# Es el ejemplo de la página 18.
+# Esperado: 201 «"id":3» «AC456EF» «"total":"68000.00"» «"subtotal":"36000.00"» «"hasta_estado":"PENDIENTE"»
+# @name ordenDosItems
+# @no-cookie-jar
+POST {{base}}/ordenes
+Cookie: {{loginRecepcion.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{
+    "vehiculo_id": 2,
+    "falla": "Ruido al frenar",
+    "items": [
+        { "repuesto_id": 2, "cantidad": 1 },
+        { "repuesto_id": 4, "cantidad": 3 }
+    ]
+}
+
+###
+# C-10: con un repuesto inexistente.
+# Esperado: 409 «El repuesto 9999 no existe»
+# @no-cookie-jar
+POST {{base}}/ordenes
+Cookie: {{loginRecepcion.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "vehiculo_id": 2, "falla": "No queda", "items": [ { "repuesto_id": 2, "cantidad": 1 }, { "repuesto_id": 9999, "cantidad": 1 } ] }
+
+###
+# C-10: la orden rechazada no quedó creada: siguen siendo tres.
+# Esperado: 200 «"total":3»
+# @no-cookie-jar
+GET {{base}}/ordenes
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-11: terminar la orden 2, que pide 4 bujías cuando hay 2.
+# Esperado: 409 «No hay stock suficiente de Bujía»
+# @no-cookie-jar
+POST {{base}}/ordenes/2/terminar
+Cookie: {{loginMecanico.response.headers.Set-Cookie}}
+
+###
+# C-11: el estado y el historial quedan como estaban: 2 líneas.
+# Esperado: 200 «"estado":"EN_REPARACION"»
+# @no-cookie-jar
+GET {{base}}/ordenes/2
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-11: el stock sigue en 2.
+# Esperado: 200 «"stock":2»
+# @no-cookie-jar
+GET {{base}}/repuestos/3
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-11: sigue un solo movimiento, el de «Stock inicial».
+# Esperado: 200 «Stock inicial»
+# @no-cookie-jar
+GET {{base}}/repuestos/3/movimientos
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-12: reponer: ahora hay 12 bujías.
+# Esperado: 200 «"stock":12»
+# @no-cookie-jar
+POST {{base}}/repuestos/3/reponer
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{ "cantidad": 10 }
+
+###
+# C-12: terminar la orden 2. En la consola del servidor, el aviso sale después de la línea del 200.
+# Esperado: 200 «"estado":"TERMINADA"» «"hasta_estado":"TERMINADA"»
+# @no-cookie-jar
+POST {{base}}/ordenes/2/terminar
+Cookie: {{loginMecanico.response.headers.Set-Cookie}}
+
+###
+# C-12: bajó el stock: 12 - 4.
+# Esperado: 200 «"stock":8»
+# @no-cookie-jar
+GET {{base}}/repuestos/3
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-12: aparecen los movimientos: el stock inicial, la reposición y la salida.
+# Esperado: 200 «Reposición» «"cantidad":-4» «Salida por la orden 2»
+# @no-cookie-jar
+GET {{base}}/repuestos/3/movimientos
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-13: el dueño cancela su orden pendiente.
+# Esperado: 200 «"estado":"CANCELADA"»
+# @no-cookie-jar
+POST {{base}}/ordenes/1/cancelar
+Cookie: {{loginCliente.response.headers.Set-Cookie}}
+
+###
+# C-13: una orden ajena. El permiso se evalúa antes que el estado: es 403 aunque ya esté terminada.
+# Esperado: 403 «No podés cancelar esta orden»
+# @no-cookie-jar
+POST {{base}}/ordenes/2/cancelar
+Cookie: {{loginCliente.response.headers.Set-Cookie}}
+
+###
+# C-13: una orden terminada, con alguien que sí tiene permiso.
+# Esperado: 409 «Sólo se puede cancelar una orden pendiente»
+# @no-cookie-jar
+POST {{base}}/ordenes/2/cancelar
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-15, preparación: una orden con cuatro ítems.
+# Esperado: 201 «"id":4»
+# @name ordenCuatroItems
+# @no-cookie-jar
+POST {{base}}/ordenes
+Cookie: {{loginRecepcion.response.headers.Set-Cookie}}
+Content-Type: application/json
+
+{
+    "vehiculo_id": 1,
+    "falla": "Service completo",
+    "items": [
+        { "repuesto_id": 1, "cantidad": 1 },
+        { "repuesto_id": 2, "cantidad": 1 },
+        { "repuesto_id": 3, "cantidad": 1 },
+        { "repuesto_id": 4, "cantidad": 1 }
+    ]
+}
+
+###
+# C-15: detalle de la orden con 2 ítems. Con SQL_ECHO=true, contar las consultas en la consola: 5.
+# Esperado: 200 «"subtotal":"32000.00"»
+# @no-cookie-jar
+GET {{base}}/ordenes/{{ordenDosItems.response.body.$.id}}
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-15: detalle de la orden con 4 ítems. La misma cantidad de consultas que con 2: 5.
+# Esperado: 200 «FIL-001» «BUJ-020»
+# @no-cookie-jar
+GET {{base}}/ordenes/{{ordenCuatroItems.response.body.$.id}}
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-17: el catálogo, por posición, con TERMINADA y CANCELADA finales.
+# Esperado: 200 «"codigo":"PENDIENTE","descripcion"» «"posicion":4,"es_final":true»
+# @no-cookie-jar
+GET {{base}}/estados-orden
+Cookie: {{loginCliente.response.headers.Set-Cookie}}
+
+###
+# C-17: el catálogo sin sesión.
+# Esperado: 401 «No autenticado»
+# @no-cookie-jar
+GET {{base}}/estados-orden
+
+###
+# C-17: filtrar órdenes por un estado que el contrato no declara.
+# Esperado: 422 «No es un valor permitido»
+# @no-cookie-jar
+GET {{base}}/ordenes?estado=VOLANDO
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}

@@ -1,0 +1,147 @@
+# Casos C-01 a C-05: parámetros, registro, cookie, login y límite de intentos.
+# Antes de correr este archivo: python seed.py
+# Los pedidos se corren en orden, de arriba hacia abajo: los que siguen usan las sesiones de los anteriores.
+
+@base = http://127.0.0.1:8000
+# Contraseña de mentira de seed.py: no es una credencial real.
+@password = Taller2026!
+
+###
+# Sesión de la administradora, para el caso C-01.
+# Esperado: 200
+# @name loginAdmin
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "{{password}}" }
+
+###
+# C-01: un parámetro de ruta que no es entero, con la sesión iniciada.
+# Esperado: 422 «Tiene que ser un número entero», sin ejecutar el handler.
+# @no-cookie-jar
+GET {{base}}/usuarios/abc/roles
+Cookie: {{loginAdmin.response.headers.Set-Cookie}}
+
+###
+# C-02: registro nuevo. Crea el usuario, su rol CLIENTE y su ficha de cliente.
+# Esperado: 201 «nueva@example.com», sin password_hash.
+# @no-cookie-jar
+POST {{base}}/auth/registro
+Content-Type: application/json
+
+{ "email": "nueva@example.com", "nombre": "Nora Nueva", "password": "{{password}}", "documento": "40111222", "telefono": "2615550999" }
+
+###
+# C-02: correo repetido.
+# Esperado: 409 «Ya existe un usuario con ese correo», y el registro rechazado no deja ninguna fila suelta.
+# @no-cookie-jar
+POST {{base}}/auth/registro
+Content-Type: application/json
+
+{ "email": "nueva@example.com", "nombre": "Otra", "password": "{{password}}", "documento": "40111333", "telefono": "1" }
+
+###
+# C-02: documento repetido. Es el de Jorge, que no tiene usuario: el registro no se apropia de su ficha.
+# Esperado: 409 «Ya existe un cliente con ese documento», y no queda ninguna fila suelta.
+# @no-cookie-jar
+POST {{base}}/auth/registro
+Content-Type: application/json
+
+{ "email": "otra@example.com", "nombre": "Otra", "password": "{{password}}", "documento": "28333444", "telefono": "1" }
+
+###
+# C-03: la cookie del login.
+# Esperado: 200 «HttpOnly» «SameSite=lax» «Max-Age=1800». Mirar Set-Cookie: el cuerpo no trae el token.
+# @name loginCookie
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "recepcion@example.com", "password": "{{password}}" }
+
+###
+# C-03: sin cookie.
+# Esperado: 401 «No autenticado»
+# @no-cookie-jar
+GET {{base}}/auth/yo
+
+###
+# C-03: con Authorization: Bearer y sin cookie. La cabecera no se lee.
+# Esperado: 401 «No autenticado»
+# @no-cookie-jar
+GET {{base}}/auth/yo
+Authorization: Bearer {{loginCookie.response.headers.Set-Cookie}}
+
+###
+# C-04: correo existente con contraseña mala.
+# Esperado: 401 «Correo o contraseña incorrectos», y tarda unos 300 ms.
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "mala" }
+
+###
+# C-04: correo inexistente. Mismo cuerpo y un tiempo parecido al anterior, por el hash ficticio.
+# Esperado: 401 «Correo o contraseña incorrectos»
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "noexiste@example.com", "password": "mala" }
+
+###
+# C-05: primer intento fallido.
+# Esperado: 401
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "mecanico@example.com", "password": "mala" }
+
+###
+# C-05: segundo intento fallido.
+# Esperado: 401
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "mecanico@example.com", "password": "mala" }
+
+###
+# C-05: tercer intento fallido.
+# Esperado: 401
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "mecanico@example.com", "password": "mala" }
+
+###
+# C-05: cuarto intento fallido.
+# Esperado: 401
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "mecanico@example.com", "password": "mala" }
+
+###
+# C-05: quinto intento fallido.
+# Esperado: 401
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "mecanico@example.com", "password": "mala" }
+
+###
+# C-05: el sexto ya no verifica la contraseña: responde en pocos milisegundos.
+# Los cinco fallos están en intento_acceso (ver con psql: SELECT * FROM intento_acceso;).
+# Esperado: 429 «Retry-After»
+# @no-cookie-jar
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "mecanico@example.com", "password": "mala" }
