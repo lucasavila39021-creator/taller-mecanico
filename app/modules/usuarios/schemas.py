@@ -52,6 +52,22 @@ class LoginEntrada(BaseModel):
         return valor.lower()
 
 
+class CambioPasswordEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    password_actual: Password
+    password_nueva: Password
+
+
+class YoSalida(BaseModel):
+    id: int
+    email: str
+    nombre: str
+    debe_cambiar_password: bool
+    roles_vigentes: list[str]
+    roles_token: list[str]
+
+
 # No trae el token: viaja sólo en la cookie.
 class LoginSalida(BaseModel):
     mensaje: str

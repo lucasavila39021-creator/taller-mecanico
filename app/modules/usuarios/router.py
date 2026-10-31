@@ -6,12 +6,26 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import Settings, get_settings
-from app.core.dependencies import get_fabrica_sesiones, get_hash_ficticio, get_semaforo_bcrypt, get_usuarios_uow
+from app.core.dependencies import (
+    UsuarioActual,
+    get_fabrica_sesiones,
+    get_hash_ficticio,
+    get_semaforo_bcrypt,
+    get_usuario_actual,
+    get_usuarios_uow,
+)
+from app.core.security import NOMBRE_COOKIE
 from app.modules.usuarios import service
-from app.modules.usuarios.schemas import LoginEntrada, LoginSalida, MensajeSalida, RegistroEntrada, UsuarioSalida
+from app.modules.usuarios.schemas import (
+    CambioPasswordEntrada,
+    LoginEntrada,
+    LoginSalida,
+    MensajeSalida,
+    RegistroEntrada,
+    UsuarioSalida,
+    YoSalida,
+)
 from app.modules.usuarios.unit_of_work import UsuariosUnitOfWork
-
-NOMBRE_COOKIE = "access_token"
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -78,3 +92,34 @@ async def login(
 async def logout(response: Response, settings: Annotated[Settings, Depends(get_settings)]) -> MensajeSalida:
     response.delete_cookie(NOMBRE_COOKIE, httponly=True, samesite="lax", secure=settings.COOKIE_SECURE)
     return MensajeSalida(mensaje="Sesión cerrada")
+
+
+@router.get("/yo")
+async def yo(actual: Annotated[UsuarioActual, Depends(get_usuario_actual)]) -> YoSalida:
+    return YoSalida(
+        id=actual.usuario.id,
+        email=actual.usuario.email,
+        nombre=actual.usuario.nombre,
+        debe_cambiar_password=actual.usuario.debe_cambiar_password,
+        roles_vigentes=actual.roles_vigentes,
+        roles_token=actual.roles_token,
+    )
+
+
+@router.post("/cambiar-password")
+async def cambiar_password(
+    datos: CambioPasswordEntrada,
+    response: Response,
+    actual: Annotated[UsuarioActual, Depends(get_usuario_actual)],
+    uow: Annotated[UsuariosUnitOfWork, Depends(get_usuarios_uow)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    semaforo: Annotated[asyncio.Semaphore, Depends(get_semaforo_bcrypt)],
+) -> MensajeSalida:
+    try:
+        token = await service.cambiar_password(uow, actual.usuario, datos, settings, semaforo)
+    except service.CredencialesInvalidas:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="La contraseña actual es incorrecta"
+        ) from None
+    _poner_cookie(response, token, settings)
+    return MensajeSalida(mensaje="Contraseña cambiada")

@@ -8,6 +8,7 @@ import jwt
 from app.core.config import Settings
 
 ALGORITMO_TOKEN = "HS256"
+NOMBRE_COOKIE = "access_token"
 
 
 class TokenInvalido(Exception):

@@ -3,7 +3,7 @@ import secrets
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, status
+from fastapi import APIRouter, Depends, FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -14,6 +14,7 @@ import app.modules.repuestos.models  # noqa: F401
 import app.modules.usuarios.models  # noqa: F401
 from app.core.config import get_settings
 from app.core.database import crear_fabrica_sesiones, crear_motor
+from app.core.dependencies import exigir_password_al_dia
 from app.core.security import hashear_password
 from app.modules.health.router import router as health_router
 from app.modules.usuarios.router import router as usuarios_router
@@ -56,5 +57,13 @@ async def error_de_validacion(request: Request, error: RequestValidationError) -
     return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, content={"detail": detalle})
 
 
-app.include_router(health_router)
-app.include_router(usuarios_router)
+# Dos grupos porque FastAPI suma dependencias y no las resta: el control del cambio obligatorio
+# de contraseña se monta una sola vez, en el grupo protegido (RN-06).
+grupo_abierto = APIRouter()
+grupo_abierto.include_router(health_router)
+grupo_abierto.include_router(usuarios_router)
+
+grupo_protegido = APIRouter(dependencies=[Depends(exigir_password_al_dia)])
+
+app.include_router(grupo_abierto)
+app.include_router(grupo_protegido)

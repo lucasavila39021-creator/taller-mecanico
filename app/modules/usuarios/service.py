@@ -12,7 +12,7 @@ from app.core.security import crear_token, hashear_password, verificar_password
 from app.modules.clientes.models import Cliente
 from app.modules.usuarios.models import AsignacionRol, EventoSeguridad, IntentoAcceso, Rol, Usuario
 from app.modules.usuarios.repository import IntentoAccesoRepository
-from app.modules.usuarios.schemas import LoginEntrada, RegistroEntrada
+from app.modules.usuarios.schemas import CambioPasswordEntrada, LoginEntrada, RegistroEntrada
 from app.modules.usuarios.unit_of_work import UsuariosUnitOfWork
 
 MAXIMO_FALLOS_LOGIN = 5
@@ -120,3 +120,29 @@ async def login(
         roles = await uow.roles.roles_vigentes(usuario.id, datetime.now(UTC))
     await _anotar_intento(fabrica, datos.email, ip, True)
     return crear_token(usuario.id, roles, settings), usuario
+
+
+async def cambiar_password(
+    uow: UsuariosUnitOfWork,
+    usuario: Usuario,
+    datos: CambioPasswordEntrada,
+    settings: Settings,
+    semaforo: asyncio.Semaphore,
+) -> str:
+    if not await verificar_password(datos.password_actual, usuario.password_hash, semaforo):
+        raise CredencialesInvalidas
+    password_hash = await hashear_password(datos.password_nueva, settings.BCRYPT_COST, semaforo)
+
+    async with uow:
+        await uow.usuarios.update(
+            usuario,
+            {
+                "password_hash": password_hash,
+                "debe_cambiar_password": False,
+                "password_cambiada_en": datetime.now(UTC),
+            },
+        )
+        await uow.eventos.add(EventoSeguridad(actor=usuario.email, accion="Cambio de contraseña"))
+        roles = await uow.roles.roles_vigentes(usuario.id, datetime.now(UTC))
+    # RN-07: se emite después de anotar el cambio. Las sesiones anteriores dejan de valer y esta no.
+    return crear_token(usuario.id, roles, settings)
