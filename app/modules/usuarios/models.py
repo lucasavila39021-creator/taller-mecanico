@@ -1,8 +1,13 @@
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import CheckConstraint, DateTime, Index, UniqueConstraint, text
 from sqlmodel import Field, Relationship, SQLModel
+
+# Sólo para el editor: importarlo de verdad sería circular, porque clientes también nombra a Usuario.
+if TYPE_CHECKING:
+    from app.modules.clientes.models import Cliente
 
 
 class Rol(StrEnum):
@@ -34,6 +39,11 @@ class Usuario(SQLModel, table=True):
     roles: list["AsignacionRol"] = Relationship(
         back_populates="usuario",
         sa_relationship_kwargs={"foreign_keys": "[AsignacionRol.usuario_id]", "lazy": "raise"},
+    )
+    # uselist=False: devuelve un objeto y no una lista.
+    cliente: Optional["Cliente"] = Relationship(
+        back_populates="usuario",
+        sa_relationship_kwargs={"uselist": False, "lazy": "raise"},
     )
 
 
