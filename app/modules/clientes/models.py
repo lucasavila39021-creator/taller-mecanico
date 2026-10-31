@@ -6,6 +6,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 # Sólo para el editor: importarlo de verdad sería circular, porque usuarios también nombra a Cliente.
 if TYPE_CHECKING:
+    from app.modules.ordenes.models import OrdenTrabajo
     from app.modules.usuarios.models import Usuario
 
 
@@ -56,5 +57,9 @@ class Vehiculo(SQLModel, table=True):
 
     cliente: Cliente = Relationship(
         back_populates="vehiculos",
+        sa_relationship_kwargs={"lazy": "raise"},
+    )
+    ordenes: list["OrdenTrabajo"] = Relationship(
+        back_populates="vehiculo",
         sa_relationship_kwargs={"lazy": "raise"},
     )

@@ -1,8 +1,13 @@
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, DateTime, Index, Numeric, text
 from sqlmodel import Field, Relationship, SQLModel
+
+# Sólo para el editor: importarlo de verdad sería circular, porque ordenes también nombra a Repuesto.
+if TYPE_CHECKING:
+    from app.modules.ordenes.models import ItemOrden
 
 
 def _ahora() -> datetime:
@@ -31,11 +36,17 @@ class Repuesto(SQLModel, table=True):
     stock: int = 0
     borrado_en: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
 
+    # passive_deletes="all": al borrar el repuesto, SQLAlchemy no toca a los hijos. Sin esto intentaría
+    # poner en NULL su repuesto_id, y ese UPDATE es lo que rechaza el disparador de sólo agregado.
     movimientos: list["MovimientoStock"] = Relationship(
         back_populates="repuesto",
-        sa_relationship_kwargs={"lazy": "raise"},
+        sa_relationship_kwargs={"lazy": "raise", "passive_deletes": "all"},
     )
     historial_precios: list["HistorialPrecio"] = Relationship(
+        back_populates="repuesto",
+        sa_relationship_kwargs={"lazy": "raise", "passive_deletes": "all"},
+    )
+    items: list["ItemOrden"] = Relationship(
         back_populates="repuesto",
         sa_relationship_kwargs={"lazy": "raise"},
     )
