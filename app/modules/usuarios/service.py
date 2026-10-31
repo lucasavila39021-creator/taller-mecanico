@@ -246,17 +246,6 @@ async def revocar_rol(uow: UsuariosUnitOfWork, usuario_id: int, rol: Rol, actor:
     return abierta
 
 
-async def desactivar_usuario(uow: UsuariosUnitOfWork, usuario_id: int, actor: Usuario) -> Usuario:
-    async with uow:
-        usuario = await _obtener_usuario(uow, usuario_id)
-        if usuario_id == actor.id:
-            raise Conflicto("No podés desactivar tu propia cuenta")
-        await _exigir_otro_administrador(uow, usuario_id)
-        await uow.usuarios.update(usuario, {"activo": False})
-        await uow.eventos.add(EventoSeguridad(actor=actor.email, accion=f"Desactivación de {usuario.email}"))
-    return usuario
-
-
 async def listar_eventos(
     uow: UsuariosUnitOfWork, paginacion: Paginacion
 ) -> tuple[Sequence[EventoSeguridad], int]:

@@ -20,7 +20,7 @@
 - 30/10 · PostgreSQL 17.11 nativo en Windows: ya estaba instalado y cumple el mínimo 16 del enunciado, que no pide Docker. `psql` viene incluido y se necesita para la evidencia del caso C-14.
 - 30/10 · Python 3.14. asyncpg 0.32 instaló e importa bien en Python 3.14; la conexión real se prueba en la Fase 1.
 - 30/10 · Roles de cada IA: Claude Code (VS Code) escribe y prueba el código; el chat de claude.ai planifica, explica y revisa; Gemini extrae y resume el material y hace tareas sueltas que Claude revisa. **Una sola IA escribe código.**
-- 31/10 · `POST /usuarios/{id}/desactivar`: lo pidió Lucas, pero no está en los endpoints de referencia del enunciado. Es el único endpoint agregado. Nadie puede desactivarse a sí mismo, y respeta RN-05.
+- 31/10 · Sin endpoint para desactivar usuarios: no está en la tabla del enunciado. `get_usuario_actual` y el login igual rechazan a un usuario con `activo` en falso, como pide el Ejercicio 5.
 - 31/10 · RN-06: con el cambio de contraseña pendiente se pueden usar todas las rutas de `/auth` y las de salud, como dice el enunciado, no sólo el cambio de contraseña.
 - 31/10 · Contraseña actual incorrecta en `/auth/cambiar-password`: 401, porque el enunciado sólo lista 200, 401 y 422 para esa ruta.
 - 31/10 · `POST /usuarios` recibe `email`, `nombre` y `password`, sin rol: los roles se asignan con `POST /usuarios/{id}/roles`. El enunciado no fija el cuerpo.
@@ -31,7 +31,7 @@
 ### 31/10 · Fase 4
 - 4c: `POST /auth/login` y `POST /auth/logout`. Primero el límite (RN-08), después la verificación contra el hash real o el ficticio (RN-09). `intento_acceso` en sesión y transacción propias.
 - 4d: `get_usuario_actual`, `requiere_rol`, `exigir_password_al_dia`, `GET /auth/yo`, `POST /auth/cambiar-password` (RN-07) y los dos grupos de rutas en `main.py`.
-- 4e: `POST /usuarios`, roles (asignar, listar y revocar, RN-03 y RN-05), desactivar y `GET /eventos`. Los administradores se bloquean con `FOR UPDATE` antes de contarlos.
+- 4e: `POST /usuarios`, roles (asignar, listar y revocar, RN-03 y RN-05) y `GET /eventos`. Los administradores se bloquean con `FOR UPDATE` antes de contarlos.
 - Probados C-01 a C-05, C-07 y C-08 contra la base real, y C-09 en lo que depende de esta fase. C-06 quedó parcial: falta la parte de las órdenes (Fase 6). Faltan los `.http` y sus evidencias (Fase 7).
 - Corrección: un vencimiento en el límite del calendario daba 500 al pasarlo a UTC. Ahora da 422.
 - 4a: `app/core/security.py` con bcrypt en `to_thread` y bajo semáforo, y JWT con `iat` con decimales. El semáforo y el hash ficticio se crean en el lifespan y van a `app.state`.

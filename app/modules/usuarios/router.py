@@ -187,17 +187,6 @@ async def revocar_rol(id: IdRuta, rol: Rol, actual: Administrador, uow: UowUsuar
     return AsignacionSalida.model_validate(asignacion)
 
 
-@router_admin.post("/usuarios/{id}/desactivar")
-async def desactivar_usuario(id: IdRuta, actual: Administrador, uow: UowUsuarios) -> UsuarioSalida:
-    try:
-        usuario = await service.desactivar_usuario(uow, id, actual.usuario)
-    except service.NoEncontrado as error:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from None
-    except service.Conflicto as error:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from None
-    return UsuarioSalida.model_validate(usuario)
-
-
 @router_admin.get("/eventos")
 async def eventos(
     paginacion: Annotated[Paginacion, Depends()], actual: Administrador, uow: UowUsuarios
