@@ -44,6 +44,7 @@
 ## Pendientes
 - Fase 4: calcular el hash ficticio del login en el lifespan de `main.py`.
 - Fase 4: agregar `to_thread` y el semáforo a `hashear_password`.
+- Fase 5: traducir los 422 de validación de FastAPI a mensajes propios en español.
 - Fase 7: las contraseñas de `seed.py` también van a aparecer en los `.http`, y el enunciado dice que viven sólo en ese archivo.
 
 ## Próximo paso
