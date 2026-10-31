@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 
 from fastapi import Request
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -26,3 +27,8 @@ def crear_fabrica_sesiones(motor: AsyncEngine) -> async_sessionmaker[AsyncSessio
 async def get_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
     async with request.app.state.fabrica_sesiones() as session:
         yield session
+
+
+# El nombre de la restricción que falló, para traducir el error sin mostrar el texto de la base.
+def nombre_restriccion(error: IntegrityError) -> str | None:
+    return getattr(error.orig.__cause__, "constraint_name", None)
