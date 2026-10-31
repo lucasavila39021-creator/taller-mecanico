@@ -9,7 +9,7 @@
 | 0 | Entorno: PostgreSQL, repo, venv, docs | – | ✅ |
 | 1 | Config, database, lifespan, health | Ej 1 | ✅ |
 | 2 | Modelos, migraciones (auto + trigger a mano), seed.py | Ej 2, 7 | ✅ |
-| 3 | BaseRepository, SoftDelete, UoW, paginación | Ej 6 | ⬜ |
+| 3 | BaseRepository, SoftDelete, UoW, paginación | Ej 6 | ✅ |
 | 4 | Auth y autorización (bcrypt, login, cookie, roles, grupos de rutas) | Ej 4, 5 | ⬜ |
 | 5 | Clientes, vehículos y repuestos (stock en un único punto, historial de precios) | Ej 3 | ⬜ |
 | 6 | Órdenes: alta, transiciones, terminar, cancelar, sin N+1, aviso | Ej 6, 8 | ⬜ |
@@ -22,6 +22,14 @@
 - 30/10 · Roles de cada IA: Claude Code (VS Code) escribe y prueba el código; el chat de claude.ai planifica, explica y revisa; Gemini extrae y resume el material y hace tareas sueltas que Claude revisa. **Una sola IA escribe código.**
 
 ## Registro
+### 30/10 · Fase 3
+- `BaseRepository[T]` y `SoftDeleteRepository[T]` en `app/core/repository.py`: `add`, `update` y `delete` hacen `flush()`, nunca `commit()`; `get_all` y `count` reciben los mismos filtros.
+- `UnitOfWork` base en `app/core/unit_of_work.py`: confirma al salir, revierte si hay excepción y no cierra la sesión.
+- Corrección: si fallaba el propio `commit`, la sesión quedaba inservible (`PendingRollbackError`). Ahora hace `rollback` y vuelve a lanzar la excepción.
+- Paginación en `app/core/paginacion.py`: envoltorio `{items, total, page, size, pages}`. La página inexistente lanza `PaginaInexistente`, sin HTTP, porque traducir los errores le toca al router.
+- Probado contra la base real, con `seed.py` al final. La traducción a 422 de `PaginaInexistente` todavía no está probada.
+- Los repositorios y Unit of Work de cada módulo se hacen junto con cada módulo, en las Fases 4 a 6.
+
 ### 30/10 · Fase 2
 - Modelos de las 13 tablas en los módulos usuarios, clientes, repuestos y ordenes, con `lazy="raise"`.
 - Migración 1 con `--autogenerate` y migración 2 a mano, con el disparador de sólo agregado sobre las 3 tablas. `upgrade head` → `downgrade base` → `upgrade head` anduvo con las dos.
@@ -44,8 +52,9 @@
 ## Pendientes
 - Fase 4: calcular el hash ficticio del login en el lifespan de `main.py`.
 - Fase 4: agregar `to_thread` y el semáforo a `hashear_password`.
+- Fase 5: traducir `PaginaInexistente` a un 422, con el primer router.
 - Fase 5: traducir los 422 de validación de FastAPI a mensajes propios en español.
 - Fase 7: las contraseñas de `seed.py` también van a aparecer en los `.http`, y el enunciado dice que viven sólo en ese archivo.
 
 ## Próximo paso
-Fase 3: BaseRepository, SoftDeleteRepository, UnitOfWork y paginación.
+Fase 4: auth y autorización (bcrypt, login, cookie, roles, grupos de rutas).
