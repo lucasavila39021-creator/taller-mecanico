@@ -114,6 +114,16 @@ uvicorn main:app
 
 El detalle de una orden usa la misma cantidad de consultas con 2 y con 4 ítems.
 
+## Entrega
+
+La entrega es un archivo `LucasAvila.zip`, que incluye la carpeta `.git` con el historial de commits.
+
+No incluye `.env`, que tiene las credenciales reales, ni `.venv`, que cada uno crea en su PC. Se arma con este comando, en la cmd de Windows y desde la carpeta del proyecto. Deja el archivo en la carpeta de arriba:
+
+```
+tar -a -c -f ..\LucasAvila.zip --exclude=.env --exclude=.venv --exclude=.vscode --exclude=__pycache__ .
+```
+
 ## Decisiones
 
 - **Capas:** Router → Service → Unit of Work → Repository → Model. El router construye el Unit of Work con una dependencia, y el servicio lo abre. Los repositorios hacen `flush()`, nunca `commit()`.

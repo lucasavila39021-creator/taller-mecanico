@@ -5,6 +5,13 @@
 @base = http://127.0.0.1:8000
 # Contraseña de mentira de seed.py: no es una credencial real.
 @password = Taller2026!
+# Token del caso C-03, que se copia a mano. Pasos:
+#   1. Enviá el pedido «C-03: la cookie del login», más abajo.
+#   2. En la respuesta, buscá el encabezado Set-Cookie.
+#   3. Copiá sólo el valor de access_token: lo que está entre "access_token=" y el primer ";".
+#   4. Pegalo acá, en lugar de PEGAR_EL_TOKEN, y guardá el archivo.
+# Con PEGAR_EL_TOKEN también da 401, pero eso no demuestra nada: la prueba es con un token válido.
+@token_manual = PEGAR_EL_TOKEN
 
 ###
 # Sesión de la administradora, para el caso C-01.
@@ -67,11 +74,12 @@ Content-Type: application/json
 GET {{base}}/auth/yo
 
 ###
-# C-03: con Authorization: Bearer y sin cookie. La cabecera no se lee.
+# C-03: con un token válido en Authorization: Bearer y sin cookie. Primero pegá el token en @token_manual.
+# El token sirve, pero el servidor ignora esa cabecera: sólo lee la cookie.
 # Esperado: 401 «No autenticado»
 # @no-cookie-jar
 GET {{base}}/auth/yo
-Authorization: Bearer {{loginCookie.response.headers.Set-Cookie}}
+Authorization: Bearer {{token_manual}}
 
 ###
 # C-04: correo existente con contraseña mala.
