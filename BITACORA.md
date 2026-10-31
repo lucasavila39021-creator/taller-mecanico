@@ -12,7 +12,7 @@
 | 3 | BaseRepository, SoftDelete, UoW, paginación | Ej 6 | ✅ |
 | 4 | Auth y autorización (bcrypt, login, cookie, roles, grupos de rutas) | Ej 4, 5 | ✅ |
 | 5 | Clientes, vehículos y repuestos (stock en un único punto, historial de precios) | Ej 3 | ✅ |
-| 6 | Órdenes: alta, transiciones, terminar, cancelar, sin N+1, aviso | Ej 6, 8 | ⬜ |
+| 6 | Órdenes: alta, transiciones, terminar, cancelar, sin N+1, aviso | Ej 6, 8 | ✅ |
 | 7 | test/*.http (C-01 a C-19), solo_agregado.sql, evidencias, README | – | ⬜ |
 
 ## Decisiones tomadas
@@ -34,8 +34,20 @@
 - 31/10 · Cantidad de `stock_inicial` y de reposición: máximo 1.000.000. Pasar del máximo de la columna da 422. El enunciado no fija estos límites.
 - 31/10 · Un repuesto dado de baja da 404 en todas sus rutas, incluidas `/movimientos` y `/precios`: RN-16 dice que deja de aparecer.
 - 31/10 · Motivo de la reposición: "Reposición". El enunciado sólo fija "Stock inicial".
+- 31/10 · `POST /ordenes/{id}/iniciar` sólo con el rol MECANICO: la tabla no incluye a ADMIN.
+- 31/10 · `terminar`: el permiso se evalúa antes que el estado, igual que RN-12 para cancelar. Otro mecánico recibe 403 aunque el estado no lo permita. El mecánico asignado tiene que seguir teniendo el rol (RN-04).
+- 31/10 · Un repuesto dado de baja después del alta de la orden igual se descuenta al terminarla: RN-16 sólo prohíbe usarlo en órdenes nuevas.
+- 31/10 · `GET /ordenes` y `GET /mis-ordenes` devuelven un resumen sin ítems ni historial. El enunciado sólo muestra el cuerpo del detalle.
+- 31/10 · Un total que no entra en `NUMERIC(12,2)` da 422. Sin este control sería un 500.
+- 31/10 · Motivo de la salida de stock: "Salida por la orden N". El aviso va al logger `uvicorn.error`, el que ya sale en la consola del servidor.
+- 31/10 · Se mantiene afuera `GET /clientes`: agregar lo que el enunciado no pide no suma nota.
 
 ## Registro
+### 31/10 · Fase 6
+- Módulo ordenes: catálogo de sólo lectura, alta (RN-10), listados, detalle, iniciar, terminar (RN-13) y cancelar (RN-12).
+- Probados C-06, C-10, C-11, C-12 (con el servidor real: el aviso sale después de la respuesta), C-13, C-15 y C-17 contra la base real.
+- El detalle usa 5 consultas con 2 y con 4 ítems: 2 de la sesión y 3 de la orden.
+
 ### 31/10 · Fase 5
 - Módulo clientes: `POST /clientes`, `GET /clientes/{id}` con vehículos vigentes, `POST /clientes/{id}/vehiculos`, `DELETE /vehiculos/{id}` (RN-16) y `GET /mis-vehiculos` (RN-17).
 - Módulo repuestos: listado con `q`, detalle, alta con `stock_inicial`, `PATCH` con su línea de precio en el mismo bloque (RN-20), baja lógica, reposición, movimientos y precios.
@@ -81,8 +93,7 @@
 - venv con Python 3.14. `requirements.txt` instalado (SQLAlchemy 2.1.6, SQLModel 0.0.48).
 
 ## Pendientes
-- Fase 6: completar el caso C-06: el cliente ve su orden (200) y no la ajena (403).
 - Fase 7: las contraseñas de `seed.py` también van a aparecer en los `.http`, y el enunciado dice que viven sólo en ese archivo.
 
 ## Próximo paso
-Fase 6: órdenes (alta, transiciones, terminar, cancelar, sin N+1, aviso).
+Fase 7: `test/*.http` (C-01 a C-19), `test/solo_agregado.sql`, evidencias y `README.md`.
